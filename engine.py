@@ -11,37 +11,75 @@ class Board(pygame.sprite.Sprite):
 
     def set_pieces(self):
         tiles_num = 8
-        board_size = self.rect.width
-        piece_size = round(board_size / tiles_num)
-        k = board_size / tiles_num % 1
+        border_size = 2
+        piece_size = (self.rect.width - border_size * tiles_num) / tiles_num
+        arg_size = (round(piece_size), round(piece_size))
 
         for x in range(tiles_num):
-            Pawn((all_sprites, pieces), (piece_size, piece_size),
-                 ((piece_size + 2) * x - round(k * x * 2), piece_size), 'black')
+            x_pos = round(piece_size * x + border_size * (x + 1))
+            Pawn((all_sprites, pieces), arg_size,
+                 (x_pos, round(piece_size + border_size)),
+                 'black', 'pawn.png')
+            Pawn((all_sprites, pieces), arg_size,
+                 (x_pos, round((tiles_num - 2) * piece_size + border_size * (tiles_num - 1))),
+                 'white', 'pawn.png')
 
         for x in range(tiles_num):
-            Pawn((all_sprites, pieces), (piece_size, piece_size),
-                 ((piece_size + 2) * x - round(k * x * 2), (tiles_num - 2) * piece_size + 5), 'white')
+            x_pos = round(piece_size * x + border_size * (x + 1))
+            PIECES[x]['obj']((all_sprites, pieces), arg_size,
+                             (x_pos, border_size),
+                             'black', PIECES[x]['pic'])
+            PIECES[x]['obj']((all_sprites, pieces), arg_size,
+                             (x_pos, round((tiles_num - 1) * piece_size + border_size * tiles_num)),
+                             'white', PIECES[x]['pic'])
 
 
-class Pawn(pygame.sprite.Sprite):
-    def __init__(self, groups, size, pos, color):
+class Piece(pygame.sprite.Sprite):
+    def __init__(self, groups, size, pos, color, im_name):
         super().__init__(*groups)
 
         self.color = color
-        image = pygame.image.load('data/{}/pawn.png'.format(color))
+        image = pygame.image.load('data/{}/{}'.format(color, im_name))
         self.image = pygame.transform.scale(image, size)
-        self.rect = pygame.Rect(pos, size)
+        self.rect = pygame.Rect(pos, (self.image.get_width(), self.image.get_height()))
+
+
+class Pawn(Piece):
+    pass
+
+
+class Rook(Piece):
+    pass
+
+
+class Knight(Piece):
+    pass
+
+
+class Bishop(Piece):
+    pass
+
+
+class Queen(Piece):
+    pass
+
+
+class King(Piece):
+    pass
 
 
 pygame.init()
 
-win_size = (651, 651)
+win_size = (658, 658)
 screen = pygame.display.set_mode(win_size)
 pygame.display.set_caption('ChessMate')
 
 all_sprites = pygame.sprite.Group()
 pieces = pygame.sprite.Group()
+
+PIECES = [{'obj': Rook, 'pic': 'rook.png'}, {'obj': Knight, 'pic': 'knight.png'}, {'obj': Bishop, 'pic': 'bishop.png'},
+          {'obj': Queen, 'pic': 'queen.png'}, {'obj': King, 'pic': 'king.png'},
+          {'obj': Bishop, 'pic': 'bishop.png'}, {'obj': Knight, 'pic': 'knight.png'}, {'obj': Rook, 'pic': 'rook.png'}]
 
 board = Board((all_sprites,), win_size)
 board.set_pieces()
