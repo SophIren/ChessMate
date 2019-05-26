@@ -1,37 +1,71 @@
 import pygame
 
 
-class Board(pygame.sprite.Sprite):
-    def __init__(self, groups, size):
-        super().__init__(*groups)
+class Board:
+    def __init__(self, size, tiles_num, border_size=0):
+        self.tiles_num = tiles_num
+        self.border_size = border_size
+        self.piece_size = (size - border_size * (tiles_num + 1)) / tiles_num
+        self.clicked_piece = None
 
-        image = pygame.image.load('data/board.png')
-        self.image = pygame.transform.scale(image, size)
-        self.rect = self.image.get_rect()
+        tile_size = round(self.piece_size + 2 * border_size)
+        for i in range(tiles_num):
+            if i % 2 == 0:
+                im_name = 'white_tile.png'
+            else:
+                im_name = 'black_tile.png'
+            for j in range(tiles_num):
+                Tile((all_sprites, tiles),
+                     (tile_size, tile_size),
+                     (round(i * (self.piece_size + self.border_size)), round(j * (self.piece_size + self.border_size))),
+                     im_name)
+                if im_name == 'white_tile.png':
+                    im_name = 'black_tile.png'
+                else:
+                    im_name = 'white_tile.png'
 
     def set_pieces(self):
-        tiles_num = 8
-        border_size = 2
-        piece_size = (self.rect.width - border_size * tiles_num) / tiles_num
-        arg_size = (round(piece_size), round(piece_size))
+        arg_size = (round(self.piece_size), round(self.piece_size))
 
-        for x in range(tiles_num):
-            x_pos = round(piece_size * x + border_size * (x + 1))
+        y_pos_black = round(self.piece_size + self.border_size)
+        y_pos_white = round((self.tiles_num - 2) * self.piece_size + self.border_size * (self.tiles_num - 1))
+        for x in range(self.tiles_num):
+            x_pos = round(self.piece_size * x + self.border_size * (x + 1))
             Pawn((all_sprites, pieces), arg_size,
-                 (x_pos, round(piece_size + border_size)),
-                 'black', 'pawn.png')
+                 (x_pos, y_pos_black),
+                 'black')
             Pawn((all_sprites, pieces), arg_size,
-                 (x_pos, round((tiles_num - 2) * piece_size + border_size * (tiles_num - 1))),
-                 'white', 'pawn.png')
+                 (x_pos, y_pos_white),
+                 'white')
 
-        for x in range(tiles_num):
-            x_pos = round(piece_size * x + border_size * (x + 1))
-            PIECES[x]['obj']((all_sprites, pieces), arg_size,
-                             (x_pos, border_size),
-                             'black', PIECES[x]['pic'])
-            PIECES[x]['obj']((all_sprites, pieces), arg_size,
-                             (x_pos, round((tiles_num - 1) * piece_size + border_size * tiles_num)),
-                             'white', PIECES[x]['pic'])
+        y_pos_black = self.border_size
+        y_pos_white = round((self.tiles_num - 1) * self.piece_size + self.border_size * self.tiles_num)
+        for x in range(self.tiles_num):
+            x_pos = round(self.piece_size * x + self.border_size * (x + 1))
+            PIECES_OBJ[x]((all_sprites, pieces), arg_size,
+                          (x_pos, y_pos_black),
+                          'black')
+            PIECES_OBJ[x]((all_sprites, pieces), arg_size,
+                          (x_pos, y_pos_white),
+                          'white')
+
+    def handle_click(self, pos):
+        if self.clicked_piece is None:
+            for piece in pieces:
+                if piece.rect.collidepoint(pos):
+                    self.clicked_piece = piece
+                    break
+        elif self.clicked_piece.can_move(pos):
+            self.clicked_piece.move_on(pos)
+
+
+class Tile(pygame.sprite.Sprite):
+    def __init__(self, groups, size, pos, im_name):
+        super().__init__(*groups)
+
+        image = pygame.image.load('data/{}'.format(im_name))
+        self.image = pygame.transform.scale(image, size)
+        self.rect = pygame.Rect(pos, size)
 
 
 class Piece(pygame.sprite.Sprite):
@@ -41,31 +75,43 @@ class Piece(pygame.sprite.Sprite):
         self.color = color
         image = pygame.image.load('data/{}/{}'.format(color, im_name))
         self.image = pygame.transform.scale(image, size)
-        self.rect = pygame.Rect(pos, (self.image.get_width(), self.image.get_height()))
+        self.rect = pygame.Rect(pos, size)
 
 
 class Pawn(Piece):
-    pass
+    def __init__(self, groups, size, pos, color):
+        super().__init__(groups, size, pos, color, 'pawn.png')
+
+    def can_move(self, pos):
+        pass
+
+    def move_on(self, pos):
+        pass
 
 
 class Rook(Piece):
-    pass
+    def __init__(self, groups, size, pos, color):
+        super().__init__(groups, size, pos, color, 'rook.png')
 
 
 class Knight(Piece):
-    pass
+    def __init__(self, groups, size, pos, color):
+        super().__init__(groups, size, pos, color, 'knight.png')
 
 
 class Bishop(Piece):
-    pass
+    def __init__(self, groups, size, pos, color):
+        super().__init__(groups, size, pos, color, 'bishop.png')
 
 
 class Queen(Piece):
-    pass
+    def __init__(self, groups, size, pos, color):
+        super().__init__(groups, size, pos, color, 'queen.png')
 
 
 class King(Piece):
-    pass
+    def __init__(self, groups, size, pos, color):
+        super().__init__(groups, size, pos, color, 'king.png')
 
 
 pygame.init()
@@ -76,12 +122,11 @@ pygame.display.set_caption('ChessMate')
 
 all_sprites = pygame.sprite.Group()
 pieces = pygame.sprite.Group()
+tiles = pygame.sprite.Group()
 
-PIECES = [{'obj': Rook, 'pic': 'rook.png'}, {'obj': Knight, 'pic': 'knight.png'}, {'obj': Bishop, 'pic': 'bishop.png'},
-          {'obj': Queen, 'pic': 'queen.png'}, {'obj': King, 'pic': 'king.png'},
-          {'obj': Bishop, 'pic': 'bishop.png'}, {'obj': Knight, 'pic': 'knight.png'}, {'obj': Rook, 'pic': 'rook.png'}]
+PIECES_OBJ = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
-board = Board((all_sprites,), win_size)
+board = Board(win_size[0], 8, 2)
 board.set_pieces()
 
 running = True
@@ -90,7 +135,7 @@ while running:
     if event.type == pygame.QUIT:
         running = False
     elif event.type == pygame.MOUSEBUTTONDOWN:
-        print(event.pos)
+        board.handle_click(event.pos)
 
     all_sprites.draw(screen)
 
