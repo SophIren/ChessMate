@@ -15,103 +15,199 @@ class Board:
             else:
                 im_name = 'black_tile.png'
             for j in range(tiles_num):
-                Tile((all_sprites, tiles),
-                     (tile_size, tile_size),
+                Tile((all_sprites, tiles), (tile_size, tile_size), (self.border_size, self.border_size),
                      (round(i * (self.piece_size + self.border_size)), round(j * (self.piece_size + self.border_size))),
-                     im_name)
+                     (i, j), im_name)
                 if im_name == 'white_tile.png':
                     im_name = 'black_tile.png'
                 else:
                     im_name = 'white_tile.png'
 
+        self.mark = Mark((all_sprites,), (round(self.piece_size), round(self.piece_size)))
+
     def set_pieces(self):
         arg_size = (round(self.piece_size), round(self.piece_size))
+        groups = (all_sprites, pieces)
 
-        y_pos_black = round(self.piece_size + self.border_size)
+        y_pos_black = round(self.piece_size + self.border_size * 2)
         y_pos_white = round((self.tiles_num - 2) * self.piece_size + self.border_size * (self.tiles_num - 1))
         for x in range(self.tiles_num):
             x_pos = round(self.piece_size * x + self.border_size * (x + 1))
-            Pawn((all_sprites, pieces), arg_size,
+            Pawn(groups, arg_size,
                  (x_pos, y_pos_black),
-                 'black')
-            Pawn((all_sprites, pieces), arg_size,
+                 (x, 1), 'black')
+            get_tile((x_pos, y_pos_black)).taken = True
+            Pawn(groups, arg_size,
                  (x_pos, y_pos_white),
-                 'white')
+                 (x, self.tiles_num - 2), 'white')
+            get_tile((x_pos, y_pos_white)).taken = True
 
         y_pos_black = self.border_size
         y_pos_white = round((self.tiles_num - 1) * self.piece_size + self.border_size * self.tiles_num)
         for x in range(self.tiles_num):
             x_pos = round(self.piece_size * x + self.border_size * (x + 1))
-            PIECES_OBJ[x]((all_sprites, pieces), arg_size,
+            PIECES_OBJ[x](groups, arg_size,
                           (x_pos, y_pos_black),
-                          'black')
-            PIECES_OBJ[x]((all_sprites, pieces), arg_size,
+                          (x, 0), 'black')
+            get_tile((x_pos, y_pos_black)).taken = True
+            PIECES_OBJ[x](groups, arg_size,
                           (x_pos, y_pos_white),
-                          'white')
+                          (x, self.tiles_num - 1), 'white')
+            get_tile((x_pos, y_pos_white)).taken = True
 
     def handle_click(self, pos):
-        if self.clicked_piece is None:
-            for piece in pieces:
-                if piece.rect.collidepoint(pos):
+        if self.clicked_piece is not None:
+            tile = get_tile(pos)
+            if self.clicked_piece.can_move(tile):
+                self.clicked_piece.move_on(tile)
+            else:
+                piece = get_piece(pos)
+                if piece is not None:
                     self.clicked_piece = piece
-                    break
-        elif self.clicked_piece.can_move(pos):
-            self.clicked_piece.move_on(pos)
+                    self.mark.rect = self.clicked_piece.rect
+        else:
+            self.clicked_piece = get_piece(pos)
+            self.mark.rect = self.clicked_piece.rect
 
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, groups, size, pos, im_name):
+    def __init__(self, groups, tile_size, border_size, coord_pos, tile_pos, im_name, taken=False):
         super().__init__(*groups)
 
+        self.tile_pos = tile_pos
+        self.border_size = border_size
+        self.taken = taken
+
         image = pygame.image.load('data/{}'.format(im_name))
+        self.image = pygame.transform.scale(image, tile_size)
+        self.rect = pygame.Rect(coord_pos, tile_size)
+
+
+class Mark(pygame.sprite.Sprite):
+    def __init__(self, groups, size):
+        super().__init__(*groups)
+
+        image = pygame.image.load('data/mark.png')
         self.image = pygame.transform.scale(image, size)
-        self.rect = pygame.Rect(pos, size)
+        self.rect = pygame.Rect((-size[0], -size[1]), size)
 
 
 class Piece(pygame.sprite.Sprite):
-    def __init__(self, groups, size, pos, color, im_name):
+    def __init__(self, groups, size, coord_pos, piece_pos, color, im_name):
         super().__init__(*groups)
 
         self.color = color
+        self.piece_pos = piece_pos
+
         image = pygame.image.load('data/{}/{}'.format(color, im_name))
         self.image = pygame.transform.scale(image, size)
-        self.rect = pygame.Rect(pos, size)
+        self.rect = pygame.Rect(coord_pos, size)
+
+    def move_on(self, tile):
+        tile.taken = True
+        get_tile((self.rect.x, self.rect.y))
+
+        border_x, border_y = tile.border_size
+        self.rect.x = tile.rect.x + border_x
+        self.rect.y = tile.rect.y + border_y
+
+        self.piece_pos = tile.tile_pos
 
 
 class Pawn(Piece):
-    def __init__(self, groups, size, pos, color):
-        super().__init__(groups, size, pos, color, 'pawn.png')
+    def __init__(self, groups, size, coord_pos, pawn_pos, color):
+        self.first_move = True
+        super().__init__(groups, size, coord_pos, pawn_pos, color, 'pawn.png')
 
-    def can_move(self, pos):
-        pass
+    def can_move(self, tile):  # In future, we will need to add an argument "current color" for board reverse
+        x_tile, y_tile = tile.tile_pos
+        x_piece, y_piece = self.piece_pos
 
-    def move_on(self, pos):
+        if not tile.taken:
+            if self.color == 'white':  # Here "current color" will be used
+                if x_tile == x_piece and y_piece - y_tile == 1:
+                    return True
+                elif x_tile == x_piece and y_piece - y_tile == 2 and self.first_move:
+                    self.first_move = False
+                    return True
+            else:
+                if x_tile == x_piece and y_tile - y_piece == 1:
+                    return True
+                elif x_tile == x_piece and y_tile - y_piece == 2 and self.first_move:
+                    self.first_move = False
+                    return True
+
+        return False
+
+    def can_take(self, tile):
         pass
 
 
 class Rook(Piece):
-    def __init__(self, groups, size, pos, color):
-        super().__init__(groups, size, pos, color, 'rook.png')
+    def __init__(self, groups, size, coord_pos, rook_pos, color):
+        super().__init__(groups, size, coord_pos, rook_pos, color, 'rook.png')
+
+    def can_move(self, tile):
+        pass
+
+    def can_take(self, tile):
+        pass
 
 
 class Knight(Piece):
-    def __init__(self, groups, size, pos, color):
-        super().__init__(groups, size, pos, color, 'knight.png')
+    def __init__(self, groups, size, coord_pos, knight_pos, color):
+        super().__init__(groups, size, coord_pos, knight_pos, color, 'knight.png')
+
+    def can_move(self, tile):
+        pass
+
+    def can_take(self, tile):
+        pass
 
 
 class Bishop(Piece):
-    def __init__(self, groups, size, pos, color):
-        super().__init__(groups, size, pos, color, 'bishop.png')
+    def __init__(self, groups, size, coord_pos, bishop_pos, color):
+        super().__init__(groups, size, coord_pos, bishop_pos, color, 'bishop.png')
+
+    def can_move(self, tile):
+        pass
+
+    def can_take(self, tile):
+        pass
 
 
 class Queen(Piece):
-    def __init__(self, groups, size, pos, color):
-        super().__init__(groups, size, pos, color, 'queen.png')
+    def __init__(self, groups, size, coord_pos, queen_pos, color):
+        super().__init__(groups, size, coord_pos, queen_pos, color, 'queen.png')
+
+    def can_move(self, tile):
+        pass
+
+    def can_take(self, tile):
+        pass
 
 
 class King(Piece):
-    def __init__(self, groups, size, pos, color):
-        super().__init__(groups, size, pos, color, 'king.png')
+    def __init__(self, groups, size, coord_pos, king_pos, color):
+        super().__init__(groups, size, coord_pos, king_pos, color, 'king.png')
+
+    def can_move(self, tile):
+        pass
+
+    def can_take(self, tile):
+        pass
+
+
+def get_piece(pos):
+    for piece in pieces:
+        if piece.rect.collidepoint(pos):
+            return piece
+
+
+def get_tile(pos):
+    for tile in tiles:
+        if tile.rect.collidepoint(pos):
+            return tile
 
 
 pygame.init()
