@@ -7,6 +7,7 @@ class Board:
         self.border_size = border_size
         self.piece_size = (size - border_size * (tiles_num + 1)) / tiles_num
         self.clicked_piece = None
+        self.turn = None
 
         tile_size = round(self.piece_size + 2 * border_size)
         for i in range(tiles_num):
@@ -26,6 +27,8 @@ class Board:
         self.mark = Mark((all_sprites,), (round(self.piece_size), round(self.piece_size)))
 
     def set_pieces(self):
+        self.turn = 'white'
+
         arg_size = (round(self.piece_size), round(self.piece_size))
         groups = (all_sprites, pieces)
 
@@ -55,19 +58,52 @@ class Board:
                           (x, self.tiles_num - 1), 'white')
             get_tile((x_pos, y_pos_white)).taken = True
 
+    def reverse(self):
+        for piece in pieces:
+            piece_x, piece_y = piece.piece_pos
+            piece_y = abs(piece_y - self.tiles_num) - 1
+
+            piece.piece_pos = (piece_x, piece_y)
+            piece.rect.y = round(piece_y * self.piece_size + self.border_size * (piece_y + 1))
+
+        for tile in tiles:
+            tile_x, tile_y = tile.tile_pos
+            tile_y = abs(tile_y - self.tiles_num) - 1
+
+            tile.tile_pos = (tile_x, tile_y)
+            tile.rect.y = round(tile_y * (self.piece_size + self.border_size))
+
     def handle_click(self, pos):
         if self.clicked_piece is not None:
-            tile = get_tile(pos)
-            if self.clicked_piece.can_move(tile):
-                self.clicked_piece.move_on(tile)
-            else:
-                piece = get_piece(pos)
-                if piece is not None:
-                    self.clicked_piece = piece
-                    self.mark.rect = self.clicked_piece.rect
+
+            if self.clicked_piece.color == self.turn:
+                tile = get_tile(pos)
+
+                if self.clicked_piece.can_move(tile):
+                    self.clicked_piece.move_on(tile)
+                    self.change_color()
+                    self.reverse()
+                    return
+
+                elif self.clicked_piece.can_take(tile):
+                    return
+
+            piece = get_piece(pos)
+            if piece is not None:
+                self.clicked_piece = piece
+                self.mark.rect = self.clicked_piece.rect
+
         else:
-            self.clicked_piece = get_piece(pos)
-            self.mark.rect = self.clicked_piece.rect
+            piece = get_piece(pos)
+            if piece is not None:
+                self.clicked_piece = get_piece(pos)
+                self.mark.rect = self.clicked_piece.rect
+
+    def change_color(self):
+        if self.turn == 'black':
+            self.turn = 'white'
+        else:
+            self.turn = 'black'
 
 
 class Tile(pygame.sprite.Sprite):
@@ -105,7 +141,6 @@ class Piece(pygame.sprite.Sprite):
 
     def move_on(self, tile):
         tile.taken = True
-        get_tile((self.rect.x, self.rect.y))
 
         border_x, border_y = tile.border_size
         self.rect.x = tile.rect.x + border_x
@@ -119,27 +154,23 @@ class Pawn(Piece):
         self.first_move = True
         super().__init__(groups, size, coord_pos, pawn_pos, color, 'pawn.png')
 
-    def can_move(self, tile):  # In future, we will need to add an argument "current color" for board reverse
+    def can_move(self, tile):
         x_tile, y_tile = tile.tile_pos
         x_piece, y_piece = self.piece_pos
 
         if not tile.taken:
-            if self.color == 'white':  # Here "current color" will be used
-                if x_tile == x_piece and y_piece - y_tile == 1:
-                    return True
-                elif x_tile == x_piece and y_piece - y_tile == 2 and self.first_move:
-                    self.first_move = False
-                    return True
-            else:
-                if x_tile == x_piece and y_tile - y_piece == 1:
-                    return True
-                elif x_tile == x_piece and y_tile - y_piece == 2 and self.first_move:
-                    self.first_move = False
-                    return True
+            if x_tile == x_piece and y_piece - y_tile == 1:
+                return True
+            elif x_tile == x_piece and y_piece - y_tile == 2 and self.first_move:
+                self.first_move = False
+                return True
 
         return False
 
     def can_take(self, tile):
+        pass
+
+    def take_on(self, tile):
         pass
 
 
@@ -153,6 +184,9 @@ class Rook(Piece):
     def can_take(self, tile):
         pass
 
+    def take_on(self, tile):
+        pass
+
 
 class Knight(Piece):
     def __init__(self, groups, size, coord_pos, knight_pos, color):
@@ -162,6 +196,9 @@ class Knight(Piece):
         pass
 
     def can_take(self, tile):
+        pass
+
+    def take_on(self, tile):
         pass
 
 
@@ -175,6 +212,9 @@ class Bishop(Piece):
     def can_take(self, tile):
         pass
 
+    def take_on(self, tile):
+        pass
+
 
 class Queen(Piece):
     def __init__(self, groups, size, coord_pos, queen_pos, color):
@@ -186,6 +226,9 @@ class Queen(Piece):
     def can_take(self, tile):
         pass
 
+    def take_on(self, tile):
+        pass
+
 
 class King(Piece):
     def __init__(self, groups, size, coord_pos, king_pos, color):
@@ -195,6 +238,9 @@ class King(Piece):
         pass
 
     def can_take(self, tile):
+        pass
+
+    def take_on(self, tile):
         pass
 
 
