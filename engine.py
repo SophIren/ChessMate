@@ -148,6 +148,9 @@ class Piece(pygame.sprite.Sprite):
 
         self.piece_pos = tile.tile_pos
 
+    def take_on(self, tile):
+        pass
+
 
 class Pawn(Piece):
     def __init__(self, groups, size, coord_pos, pawn_pos, color):
@@ -170,9 +173,6 @@ class Pawn(Piece):
     def can_take(self, tile):
         pass
 
-    def take_on(self, tile):
-        pass
-
 
 class Rook(Piece):
     def __init__(self, groups, size, coord_pos, rook_pos, color):
@@ -182,9 +182,6 @@ class Rook(Piece):
         pass
 
     def can_take(self, tile):
-        pass
-
-    def take_on(self, tile):
         pass
 
 
@@ -198,9 +195,6 @@ class Knight(Piece):
     def can_take(self, tile):
         pass
 
-    def take_on(self, tile):
-        pass
-
 
 class Bishop(Piece):
     def __init__(self, groups, size, coord_pos, bishop_pos, color):
@@ -210,9 +204,6 @@ class Bishop(Piece):
         pass
 
     def can_take(self, tile):
-        pass
-
-    def take_on(self, tile):
         pass
 
 
@@ -226,9 +217,6 @@ class Queen(Piece):
     def can_take(self, tile):
         pass
 
-    def take_on(self, tile):
-        pass
-
 
 class King(Piece):
     def __init__(self, groups, size, coord_pos, king_pos, color):
@@ -238,9 +226,6 @@ class King(Piece):
         pass
 
     def can_take(self, tile):
-        pass
-
-    def take_on(self, tile):
         pass
 
 
