@@ -242,7 +242,7 @@ class Knight(Piece):
         return False
 
     def can_take(self, tile):
-        if tile.taken_by is not None:
+        if tile.taken_by is not None and tile.taken_by.color != self.color:
             return self.can_move(tile, skip_tile_ver=True)
 
         return False
@@ -274,11 +274,21 @@ class King(Piece):
     def __init__(self, groups, size, coord_pos, king_pos, color):
         super().__init__(groups, size, coord_pos, king_pos, color, 'king.png')
 
-    def can_move(self, tile):
-        pass
+    def can_move(self, tile, skip_tile_ver=False):
+        if tile.taken_by is None or skip_tile_ver:
+            x_dif = abs(self.x_piece - tile.x_tile)
+            y_dif = abs(self.y_piece - tile.y_tile)
+
+            if (x_dif == 1 and y_dif == 0) or (x_dif == 0 and y_dif == 1) or (x_dif == 1 and y_dif == 1):
+                return True
+
+        return False
 
     def can_take(self, tile):
-        pass
+        if tile.taken_by is not None and tile.taken_by.color != self.color:
+            return self.can_move(tile, skip_tile_ver=True)
+
+        return False
 
 
 def get_piece_by_pos(x_pos, y_pos):
