@@ -137,7 +137,7 @@ class Piece(pygame.sprite.Sprite):
         self.rect = pygame.Rect(coord_pos, size)
 
     def move_on(self, tile):
-        get_tile_by_pos(self.x_piece, self.y_piece).taken = None
+        get_tile_by_pos(self.x_piece, self.y_piece).taken_by = None
         tile.taken_by = self
 
         self.rect.x = tile.rect.x + tile.border_size
@@ -153,6 +153,34 @@ class Piece(pygame.sprite.Sprite):
 
         self.move_on(tile)
 
+    def check_pieces_on_hor_line(self, tile):
+        if self.x_piece < tile.x_tile:
+            min_x = self.x_piece + 1
+            max_x = tile.x_tile + 1
+        else:
+            min_x = tile.x_tile
+            max_x = self.x_piece
+
+        for x in range(min_x, max_x):
+            if get_tile_by_pos(x, self.y_piece).taken_by is not None:
+                return True
+
+        return False
+
+    def check_pieces_on_ver_line(self, tile):
+        if self.y_piece < tile.y_tile:
+            min_y = self.y_piece + 1
+            max_y = tile.y_tile + 1
+        else:
+            min_y = tile.y_tile
+            max_y = self.y_piece
+
+        for y in range(min_y, max_y):
+            if get_tile_by_pos(self.x_piece, y).taken_by is not None:
+                return True
+
+        return False
+
 
 class Pawn(Piece):
     def __init__(self, groups, size, coord_pos, pawn_pos, color):
@@ -164,7 +192,7 @@ class Pawn(Piece):
             if tile.x_tile == self.x_piece and self.y_piece - tile.y_tile == 1:
                 return True
             elif tile.x_tile == self.x_piece and self.y_piece - tile.y_tile == 2 and \
-                    self.first_move and get_piece_by_pos(self.x_piece, self.y_piece - 1) is None:
+                    self.first_move and not self.check_pieces_on_ver_line(tile):
                 self.first_move = False
                 return True
 
@@ -184,7 +212,12 @@ class Rook(Piece):
         super().__init__(groups, size, coord_pos, rook_pos, color, 'rook.png')
 
     def can_move(self, tile):
-        pass
+        if self.x_piece == tile.x_tile and not self.check_pieces_on_ver_line(tile):
+            return True
+        elif self.y_piece == tile.y_tile and not self.check_pieces_on_hor_line(tile):
+            return True
+
+        return False
 
     def can_take(self, tile):
         pass
