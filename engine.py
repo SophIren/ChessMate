@@ -156,9 +156,9 @@ class Piece(pygame.sprite.Sprite):
     def check_pieces_on_hor_line(self, tile):
         if self.x_piece < tile.x_tile:
             min_x = self.x_piece + 1
-            max_x = tile.x_tile + 1
+            max_x = tile.x_tile
         else:
-            min_x = tile.x_tile
+            min_x = tile.x_tile + 1
             max_x = self.x_piece
 
         for x in range(min_x, max_x):
@@ -170,9 +170,9 @@ class Piece(pygame.sprite.Sprite):
     def check_pieces_on_ver_line(self, tile):
         if self.y_piece < tile.y_tile:
             min_y = self.y_piece + 1
-            max_y = tile.y_tile + 1
+            max_y = tile.y_tile
         else:
-            min_y = tile.y_tile
+            min_y = tile.y_tile + 1
             max_y = self.y_piece
 
         for y in range(min_y, max_y):
@@ -201,7 +201,7 @@ class Pawn(Piece):
     def can_take(self, tile):
         if ((self.x_piece - 1) == tile.x_tile or (self.x_piece + 1) == tile.x_tile) \
                 and (self.y_piece - 1 == tile.y_tile or self.y_piece + 1 == tile.y_tile) \
-                and tile.taken_by is not None:
+                and tile.taken_by is not None and tile.taken_by.color != self.color:
             return True
 
         return False
@@ -211,16 +211,18 @@ class Rook(Piece):
     def __init__(self, groups, size, coord_pos, rook_pos, color):
         super().__init__(groups, size, coord_pos, rook_pos, color, 'rook.png')
 
-    def can_move(self, tile):
-        if self.x_piece == tile.x_tile and not self.check_pieces_on_ver_line(tile):
-            return True
-        elif self.y_piece == tile.y_tile and not self.check_pieces_on_hor_line(tile):
-            return True
+    def can_move(self, tile, skip_tile_ver=False):
+        if tile.taken_by is None or skip_tile_ver:
+            if self.x_piece == tile.x_tile and not self.check_pieces_on_ver_line(tile):
+                return True
+            elif self.y_piece == tile.y_tile and not self.check_pieces_on_hor_line(tile):
+                return True
 
-        return False
+            return False
 
     def can_take(self, tile):
-        pass
+        if tile.taken_by is not None and tile.taken_by.color != self.color:
+            return self.can_move(tile, skip_tile_ver=True)
 
 
 class Knight(Piece):
