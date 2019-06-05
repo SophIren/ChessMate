@@ -149,11 +149,11 @@ class Piece(pygame.sprite.Sprite):
         self.piece_pos = tile.tile_pos
 
     def take_on(self, tile):
-        self.move_on(tile)
-
         taken_piece = get_piece_by_pos(tile.tile_pos)
-        for group in self.groups():
+        for group in taken_piece.groups():
             group.remove(taken_piece)
+
+        self.move_on(tile)
 
 
 class Pawn(Piece):
