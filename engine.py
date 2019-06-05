@@ -199,7 +199,7 @@ class Pawn(Piece):
         return False
 
     def can_take(self, tile):
-        if ((self.x_piece - 1) == tile.x_tile or (self.x_piece + 1) == tile.x_tile) \
+        if (self.x_piece - 1 == tile.x_tile or self.x_piece + 1 == tile.x_tile) \
                 and (self.y_piece - 1 == tile.y_tile or self.y_piece + 1 == tile.y_tile) \
                 and tile.taken_by is not None and tile.taken_by.color != self.color:
             return True
@@ -224,16 +224,28 @@ class Rook(Piece):
         if tile.taken_by is not None and tile.taken_by.color != self.color:
             return self.can_move(tile, skip_tile_ver=True)
 
+        return False
+
 
 class Knight(Piece):
     def __init__(self, groups, size, coord_pos, knight_pos, color):
         super().__init__(groups, size, coord_pos, knight_pos, color, 'knight.png')
 
-    def can_move(self, tile):
-        pass
+    def can_move(self, tile, skip_tile_ver=False):
+        if tile.taken_by is None or skip_tile_ver:
+            x_dif = abs(self.x_piece - tile.x_tile)
+            y_dif = abs(self.y_piece - tile.y_tile)
+
+            if (x_dif == 2 and y_dif == 1) or (x_dif == 1 and y_dif == 2):
+                return True
+
+        return False
 
     def can_take(self, tile):
-        pass
+        if tile.taken_by is not None:
+            return self.can_move(tile, skip_tile_ver=True)
+
+        return False
 
 
 class Bishop(Piece):
