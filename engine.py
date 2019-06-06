@@ -154,12 +154,7 @@ class Piece(pygame.sprite.Sprite):
         self.move_on(tile)
 
     def check_pieces_on_hor_line(self, tile):
-        if self.x_piece < tile.x_tile:
-            min_x = self.x_piece + 1
-            max_x = tile.x_tile
-        else:
-            min_x = tile.x_tile + 1
-            max_x = self.x_piece
+        min_x, min_y, max_x, max_y = self.get_range_between_tile(tile)
 
         for x in range(min_x, max_x):
             if get_tile_by_pos(x, self.y_piece).taken_by is not None:
@@ -168,6 +163,24 @@ class Piece(pygame.sprite.Sprite):
         return False
 
     def check_pieces_on_ver_line(self, tile):
+        min_x, min_y, max_x, max_y = self.get_range_between_tile(tile)
+
+        for y in range(min_y, max_y):
+            if get_tile_by_pos(self.x_piece, y).taken_by is not None:
+                return True
+
+        return False
+
+    def check_pieces_on_diagonal(self, tile):
+        min_x, min_y, max_x, max_y = self.get_range_between_tile(tile)
+
+        for i in range(max_x - min_x):
+            if get_tile_by_pos(min_x + i, min_y + i).taken_by is not None:
+                return True
+
+        return False
+
+    def get_range_between_tile(self, tile):
         if self.y_piece < tile.y_tile:
             min_y = self.y_piece + 1
             max_y = tile.y_tile
@@ -175,11 +188,14 @@ class Piece(pygame.sprite.Sprite):
             min_y = tile.y_tile + 1
             max_y = self.y_piece
 
-        for y in range(min_y, max_y):
-            if get_tile_by_pos(self.x_piece, y).taken_by is not None:
-                return True
+        if self.x_piece < tile.x_tile:
+            min_x = self.x_piece + 1
+            max_x = tile.x_tile
+        else:
+            min_x = tile.x_tile + 1
+            max_x = self.x_piece
 
-        return False
+        return min_x, min_y, max_x, max_y
 
 
 class Pawn(Piece):
@@ -252,11 +268,21 @@ class Bishop(Piece):
     def __init__(self, groups, size, coord_pos, bishop_pos, color):
         super().__init__(groups, size, coord_pos, bishop_pos, color, 'bishop.png')
 
-    def can_move(self, tile):
-        pass
+    def can_move(self, tile, skip_tile_ver=False):
+        if tile.taken_by is None or skip_tile_ver:
+            x_dif = abs(self.x_piece - tile.x_tile)
+            y_dif = abs(self.y_piece - tile.y_tile)
+
+            if x_dif == y_dif and not self.check_pieces_on_diagonal(tile):
+                return True
+
+            return False
 
     def can_take(self, tile):
-        pass
+        if tile.taken_by is not None and tile.taken_by.color != self.color:
+            return self.can_move(tile, skip_tile_ver=True)
+
+        return False
 
 
 class Queen(Piece):
