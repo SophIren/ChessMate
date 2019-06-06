@@ -153,20 +153,15 @@ class Piece(pygame.sprite.Sprite):
 
         self.move_on(tile)
 
-    def check_pieces_on_hor_line(self, tile):
+    def check_pieces_on_line(self, tile):
         min_x, min_y, max_x, max_y = self.get_range_between_tile(tile)
 
-        for x in range(min_x, max_x):
-            if get_tile_by_pos(x, self.y_piece).taken_by is not None:
+        for i in range(max_x - min_x):
+            if get_tile_by_pos(min_x + i, self.y_piece).taken_by is not None:
                 return True
 
-        return False
-
-    def check_pieces_on_ver_line(self, tile):
-        min_x, min_y, max_x, max_y = self.get_range_between_tile(tile)
-
-        for y in range(min_y, max_y):
-            if get_tile_by_pos(self.x_piece, y).taken_by is not None:
+        for i in range(max_y - min_y):
+            if get_tile_by_pos(self.x_piece, min_y + i).taken_by is not None:
                 return True
 
         return False
@@ -208,7 +203,7 @@ class Pawn(Piece):
             if tile.x_tile == self.x_piece and self.y_piece - tile.y_tile == 1:
                 return True
             elif tile.x_tile == self.x_piece and self.y_piece - tile.y_tile == 2 and \
-                    self.first_move and not self.check_pieces_on_ver_line(tile):
+                    self.first_move and not self.check_pieces_on_line(tile):
                 self.first_move = False
                 return True
 
@@ -229,9 +224,8 @@ class Rook(Piece):
 
     def can_move(self, tile, skip_tile_ver=False):
         if tile.taken_by is None or skip_tile_ver:
-            if self.x_piece == tile.x_tile and not self.check_pieces_on_ver_line(tile):
-                return True
-            elif self.y_piece == tile.y_tile and not self.check_pieces_on_hor_line(tile):
+            if (self.x_piece == tile.x_tile and not self.check_pieces_on_line(tile)) or \
+                    (self.y_piece == tile.y_tile and not self.check_pieces_on_line(tile)):
                 return True
 
             return False
@@ -289,11 +283,22 @@ class Queen(Piece):
     def __init__(self, groups, size, coord_pos, queen_pos, color):
         super().__init__(groups, size, coord_pos, queen_pos, color, 'queen.png')
 
-    def can_move(self, tile):
-        pass
+    def can_move(self, tile, skip_tile_ver=False):
+        if tile.taken_by is None or skip_tile_ver:
+            x_dif = abs(self.x_piece - tile.x_tile)
+            y_dif = abs(self.y_piece - tile.y_tile)
+
+            if x_dif == y_dif and not self.check_pieces_on_diagonal(tile):
+                return True
+            elif (self.x_piece == tile.x_tile and not self.check_pieces_on_line(tile)) or \
+                    (self.y_piece == tile.y_tile and not self.check_pieces_on_line(tile)):
+                return True
 
     def can_take(self, tile):
-        pass
+        if tile.taken_by is not None and tile.taken_by.color != self.color:
+            return self.can_move(tile, skip_tile_ver=True)
+
+        return False
 
 
 class King(Piece):
