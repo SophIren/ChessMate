@@ -116,6 +116,12 @@ class Tile(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(image, tile_size)
         self.rect = pygame.Rect(coord_pos, tile_size)
 
+    def is_under_attack(self):
+        for piece in pieces:
+            if piece.can_take(self, skip_tile_ver=True) and piece.color != board.turn:
+                return True
+        return False
+
 
 class Mark(pygame.sprite.Sprite):
     def __init__(self, groups, size):
@@ -216,12 +222,12 @@ class Pawn(Piece):
 
         return False
 
-    def can_take(self, tile):
-        if (self.x_piece - 1 == tile.x_tile or self.x_piece + 1 == tile.x_tile) \
-                and (self.y_piece - 1 == tile.y_tile or self.y_piece + 1 == tile.y_tile) \
-                and tile.taken_by is not None and tile.taken_by.color != self.color:
-            self.first_move = False
-            return True
+    def can_take(self, tile, skip_tile_ver=False):
+        if (tile.taken_by is not None and tile.taken_by.color != self.color) or skip_tile_ver:
+            if (self.x_piece - 1 == tile.x_tile or self.x_piece + 1 == tile.x_tile) \
+                    and (self.y_piece - 1 == tile.y_tile or self.y_piece + 1 == tile.y_tile):
+                self.first_move = False
+                return True
 
         return False
 
@@ -240,8 +246,8 @@ class Rook(Piece):
 
             return False
 
-    def can_take(self, tile):
-        if tile.taken_by is not None and tile.taken_by.color != self.color:
+    def can_take(self, tile, skip_tile_ver=False):
+        if (tile.taken_by is not None and tile.taken_by.color != self.color) or skip_tile_ver:
             return self.can_move(tile, skip_tile_ver=True)
 
         return False
@@ -261,8 +267,8 @@ class Knight(Piece):
 
         return False
 
-    def can_take(self, tile):
-        if tile.taken_by is not None and tile.taken_by.color != self.color:
+    def can_take(self, tile, skip_tile_ver=False):
+        if (tile.taken_by is not None and tile.taken_by.color != self.color) or skip_tile_ver:
             return self.can_move(tile, skip_tile_ver=True)
 
         return False
@@ -282,8 +288,8 @@ class Bishop(Piece):
 
             return False
 
-    def can_take(self, tile):
-        if tile.taken_by is not None and tile.taken_by.color != self.color:
+    def can_take(self, tile, skip_tile_ver=False):
+        if (tile.taken_by is not None and tile.taken_by.color != self.color) or skip_tile_ver:
             return self.can_move(tile, skip_tile_ver=True)
 
         return False
@@ -304,8 +310,8 @@ class Queen(Piece):
                     (self.y_piece == tile.y_tile and not self.check_pieces_on_line(tile)):
                 return True
 
-    def can_take(self, tile):
-        if tile.taken_by is not None and tile.taken_by.color != self.color:
+    def can_take(self, tile, skip_tile_ver=False):
+        if (tile.taken_by is not None and tile.taken_by.color != self.color) or skip_tile_ver:
             return self.can_move(tile, skip_tile_ver=True)
 
         return False
@@ -326,24 +332,28 @@ class King(Piece):
                 return True
             elif x_dif == 2 and not self.check_pieces_on_line(tile) and self.first_move:
                 # This verification (castling check) works only for default board size
-                # Places with +1 and -2 breaking it (need formula for future)
+                # Places with +-1 and +-2 breaking it (need a formula for future)
                 rook_tile = get_tile_by_pos(tile.x_tile + 1, tile.y_tile)
-                if rook_tile.taken_by:
-                    if rook_tile.taken_by.first_move:
+                if type(rook_tile.taken_by) == Rook:
+                    if rook_tile.taken_by.first_move and \
+                            not get_tile_by_pos(self.x_piece + 1, self.y_piece).is_under_attack() and \
+                            not get_tile_by_pos(self.x_piece + 2, self.y_piece).is_under_attack():
                         rook_tile.taken_by.move_on(get_tile_by_pos(tile.x_tile - 1, tile.y_tile))
                         self.first_move = False
                         return True
                 rook_tile = get_tile_by_pos(tile.x_tile - 2, tile.y_tile)
-                if rook_tile.taken_by:
-                    if rook_tile.taken_by.first_move:
+                if type(rook_tile.taken_by) == Rook:
+                    if rook_tile.taken_by.first_move and \
+                            not get_tile_by_pos(self.x_piece - 1, self.y_piece).is_under_attack() and \
+                            not get_tile_by_pos(self.x_piece - 2, self.y_piece).is_under_attack():
                         rook_tile.taken_by.move_on(get_tile_by_pos(tile.x_tile + 1, tile.y_tile))
                         self.first_move = False
                         return True
 
         return False
 
-    def can_take(self, tile):
-        if tile.taken_by is not None and tile.taken_by.color != self.color:
+    def can_take(self, tile, skip_tile_ver=False):
+        if (tile.taken_by is not None and tile.taken_by.color != self.color) or skip_tile_ver:
             return self.can_move(tile, skip_tile_ver=True)
 
         return False
