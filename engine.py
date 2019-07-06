@@ -2,63 +2,90 @@ import pygame
 
 
 class Board:
-    def __init__(self, size, tiles_num, pieces_obj, pieces_group, tiles_group, all_sprites_group, border_size=0):
+    def __init__(self, size, tiles_num,
+                 white_tile_im_name='white_tile.png', black_tile_im_name='black_tile.png', border_size=0):
         self.tiles_num = tiles_num
         self.border_size = border_size
-        self.piece_size = (size - border_size * (tiles_num + 1)) / tiles_num
-        self.pieces_obj = pieces_obj
-        self.pieces = pieces_group
-        self.tiles = tiles_group
-        self.all_sprites = all_sprites_group
+        self.piece_size = (size - self.border_size * (self.tiles_num + 1)) / self.tiles_num
         self.clicked_piece = None
         self.turn = None
 
-        tile_size = round(self.piece_size + 2 * border_size)
-        for i in range(tiles_num):
+        group_names = ['all_sprites', 'pieces', 'white_pieces', 'black_pieces', 'kings', 'tiles',
+                       'pawns', 'rooks', 'knights', 'bishops', 'queens', 'kings']
+        for group_name in group_names:
+            exec("self.{} = pygame.sprite.Group()".format(group_name))
+
+        self.piece_color_rel = {
+            'white': self.white_pieces,
+            'black': self.black_pieces
+        }
+        self.piece_class_rel = {
+            Pawn: self.pawns,
+            Rook: self.rooks,
+            Knight: self.knights,
+            Bishop: self.bishops,
+            Queen: self.queens,
+            King: self.kings
+        }
+
+        tile_size = round(self.piece_size + 2 * self.border_size)
+        for i in range(self.tiles_num):
             if i % 2 == 0:
-                im_name = 'white_tile.png'
+                im_name = white_tile_im_name
             else:
-                im_name = 'black_tile.png'
-            for j in range(tiles_num):
-                Tile((self.all_sprites, self.tiles), self, (tile_size, tile_size), self.border_size,
-                     (round(i * (self.piece_size + self.border_size)), round(j * (self.piece_size + self.border_size))),
-                     (i, j), im_name)
-                if im_name == 'white_tile.png':
-                    im_name = 'black_tile.png'
+                im_name = black_tile_im_name
+
+            for j in range(self.tiles_num):
+                x_coord = round(i * (self.piece_size + self.border_size))
+                y_coord = round(j * (self.piece_size + self.border_size))
+                Tile((self.all_sprites, self.tiles), self, (tile_size, tile_size),
+                     self.border_size, (x_coord, y_coord), (i, j), im_name)
+
+                if im_name == black_tile_im_name:
+                    im_name = white_tile_im_name
                 else:
-                    im_name = 'white_tile.png'
+                    im_name = black_tile_im_name
 
         self.mark = Mark((self.all_sprites,), (round(self.piece_size), round(self.piece_size)))
 
-    def set_pieces(self):
+    def set_pieces(self, pieces_obj):
         self.turn = 'white'
 
         arg_size = (round(self.piece_size), round(self.piece_size))
-        groups = (self.all_sprites, self.pieces)
 
-        y_pos_black = round(self.piece_size + self.border_size * 2)
-        y_pos_white = round((self.tiles_num - 2) * self.piece_size + self.border_size * (self.tiles_num - 1))
-        for x in range(self.tiles_num):
-            x_pos = round(self.piece_size * x + self.border_size * (x + 1))
-            self.get_tile_by_coord((x_pos, y_pos_black)).taken_by = self.pieces_obj[0][0](groups, self, arg_size,
-                                                                                          (x_pos, y_pos_black),
-                                                                                          (x, 1), 'black')
-            self.get_tile_by_coord((x_pos, y_pos_white)).taken_by = self.pieces_obj[0][0](groups, self, arg_size,
-                                                                                          (x_pos, y_pos_white),
-                                                                                          (x, self.tiles_num - 2),
-                                                                                          'white')
+        white_groups = [self.all_sprites, self.pieces, self.white_pieces]
+        black_groups = [self.all_sprites, self.pieces, self.black_pieces]
+        pawn_group = [self.piece_class_rel[pieces_obj[0][0]]]
 
-        y_pos_black = self.border_size
-        y_pos_white = round((self.tiles_num - 1) * self.piece_size + self.border_size * self.tiles_num)
+        y_coord_white_pawn = round((self.tiles_num - 2) * self.piece_size + self.border_size * (self.tiles_num - 1))
+        y_coord_white_piece = round((self.tiles_num - 1) * self.piece_size + self.border_size * self.tiles_num)
+        y_coord_black_pawn = round(self.piece_size + self.border_size * 2)
+        y_coord_black_piece = self.border_size
+
         for x in range(self.tiles_num):
-            x_pos = round(self.piece_size * x + self.border_size * (x + 1))
-            self.get_tile_by_coord((x_pos, y_pos_black)).taken_by = self.pieces_obj[1][x](groups, self, arg_size,
-                                                                                          (x_pos, y_pos_black),
-                                                                                          (x, 0), 'black')
-            self.get_tile_by_coord((x_pos, y_pos_white)).taken_by = self.pieces_obj[1][x](groups, self, arg_size,
-                                                                                          (x_pos, y_pos_white),
-                                                                                          (x, self.tiles_num - 1),
-                                                                                          'white')
+            x_coord = round(self.piece_size * x + self.border_size * (x + 1))
+
+            piece_group = [self.piece_class_rel[pieces_obj[1][x]]]
+
+            white_tile_pawn = self.get_tile_by_coord((x_coord, y_coord_white_pawn))
+            white_tile_pawn.taken_by = pieces_obj[0][0](white_groups + pawn_group, self, arg_size,
+                                                        (x_coord, y_coord_white_pawn),
+                                                        (x, self.tiles_num - 2), 'white')
+
+            white_tile_piece = self.get_tile_by_coord((x_coord, y_coord_white_piece))
+            white_tile_piece.taken_by = pieces_obj[1][x](white_groups + piece_group, self, arg_size,
+                                                         (x_coord, y_coord_white_piece),
+                                                         (x, self.tiles_num - 1), 'white')
+
+            black_tile_pawn = self.get_tile_by_coord((x_coord, y_coord_black_pawn))
+            black_tile_pawn.taken_by = pieces_obj[0][0](black_groups + pawn_group, self, arg_size,
+                                                        (x_coord, y_coord_black_pawn),
+                                                        (x, 1), 'black')
+
+            black_tile_piece = self.get_tile_by_coord((x_coord, y_coord_black_piece))
+            black_tile_piece.taken_by = pieces_obj[1][x](black_groups + piece_group, self, arg_size,
+                                                         (x_coord, y_coord_black_piece),
+                                                         (x, 0), 'black')
 
     def reverse(self):
         for piece in self.pieces:
@@ -84,7 +111,7 @@ class Board:
                     self.clicked_piece.move_on(tile)
 
                     if not self.have_check_on(self.clicked_piece.color):
-                        self.change_color()
+                        self.turn = self.get_opposite_color(self.turn)
                         self.reverse()  # Is required now (need fix)
                         return
                     else:
@@ -98,7 +125,7 @@ class Board:
                     self.clicked_piece.move_on(tile)
 
                     if not self.have_check_on(self.clicked_piece.color):
-                        self.change_color()
+                        self.turn = self.get_opposite_color(self.turn)
                         self.reverse()  # Is required now (need fix)
                         return
                     else:
@@ -114,24 +141,13 @@ class Board:
             self.mark.rect = self.clicked_piece.rect
 
     def have_check_on(self, color):
-        kings = []
-        for piece in self.pieces:
-            if type(piece) == King and piece.color == color:
-                kings.append(piece)
-
-        for king in kings:
+        for king in set(self.kings).intersection(self.piece_color_rel[color]):
             king_tile = self.get_tile_by_pos(king.x_piece, king.y_piece)
-            for piece in self.pieces:
-                if piece.color != color and piece.can_take(king_tile):
+            for piece in self.piece_color_rel[self.get_opposite_color(color)]:
+                if piece.can_take(king_tile):
                     return True
 
         return False
-
-    def change_color(self):
-        if self.turn == 'black':
-            self.turn = 'white'
-        else:
-            self.turn = 'black'
 
     def check_pieces_on_line_between(self, piece, tile):
         min_x, min_y, max_x, max_y = self.get_range_between(piece, tile)
@@ -154,29 +170,12 @@ class Board:
                     (piece.x_piece < tile.x_tile and piece.y_piece < tile.y_tile):
                 if self.get_tile_by_pos(min_x + i, min_y + i).taken_by is not None:
                     return True
+
             else:
                 if self.get_tile_by_pos(min_x + i, max_y - i - 1).taken_by is not None:
                     return True
 
         return False
-
-    @staticmethod
-    def get_range_between(piece, tile):
-        if piece.y_piece < tile.y_tile:
-            min_y = piece.y_piece + 1
-            max_y = tile.y_tile
-        else:
-            min_y = tile.y_tile + 1
-            max_y = piece.y_piece
-
-        if piece.x_piece < tile.x_tile:
-            min_x = piece.x_piece + 1
-            max_x = tile.x_tile
-        else:
-            min_x = tile.x_tile + 1
-            max_x = piece.x_piece
-
-        return min_x, min_y, max_x, max_y
 
     def get_piece_by_pos(self, x_pos, y_pos):
         for piece in self.pieces:
@@ -198,6 +197,45 @@ class Board:
             if tile.rect.collidepoint(coord):
                 return tile
 
+    def run_game(self):
+        running = True
+
+        while running:
+            event = pygame.event.wait()
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                self.handle_click(event.pos)
+
+            self.all_sprites.draw(screen)
+
+            pygame.display.flip()
+
+    @staticmethod
+    def get_range_between(piece, tile):
+        if piece.y_piece < tile.y_tile:
+            min_y = piece.y_piece + 1
+            max_y = tile.y_tile
+        else:
+            min_y = tile.y_tile + 1
+            max_y = piece.y_piece
+
+        if piece.x_piece < tile.x_tile:
+            min_x = piece.x_piece + 1
+            max_x = tile.x_tile
+        else:
+            min_x = tile.x_tile + 1
+            max_x = piece.x_piece
+
+        return min_x, min_y, max_x, max_y
+
+    @staticmethod
+    def get_opposite_color(color):
+        if color == 'black':
+            return 'white'
+        else:
+            return 'black'
+
 
 class Tile(pygame.sprite.Sprite):
     def __init__(self, groups, board, tile_size, border_size, coord_pos, tile_pos, im_name, taken_by=None):
@@ -213,8 +251,9 @@ class Tile(pygame.sprite.Sprite):
         self.rect = pygame.Rect(coord_pos, tile_size)
 
     def is_under_attack(self):
-        for piece in self.board.pieces:
-            if piece.color != self.board.turn and piece.can_take(self, skip_tile_ver=True):
+        opposite_color = self.board.get_opposite_color(self.board.turn)
+        for piece in self.board.piece_color_rel[opposite_color]:
+            if piece.can_take(self, skip_tile_ver=True):
                 return True
         return False
 
@@ -256,15 +295,16 @@ class Piece(pygame.sprite.Sprite):
 
 
 class Pawn(Piece):
-    def __init__(self, groups, board, size, coord_pos, pawn_pos, color):
+    def __init__(self, groups, board, size, coord_pos, pawn_pos, color, im_name='pawn.png'):
         self.first_move = True
-        Piece.__init__(self, groups, board, size, coord_pos, pawn_pos, color, 'pawn.png')
+        Piece.__init__(self, groups, board, size, coord_pos, pawn_pos, color, im_name)
 
     def can_move(self, tile):
         if tile.taken_by is None:
             if tile.x_tile == self.x_piece and self.y_piece - tile.y_tile == 1:
                 self.first_move = False
                 return True
+
             elif tile.x_tile == self.x_piece and self.y_piece - tile.y_tile == 2 and \
                     self.first_move and not self.board.check_pieces_on_line_between(self, tile):
                 self.first_move = False
@@ -274,8 +314,8 @@ class Pawn(Piece):
 
     def can_take(self, tile, skip_tile_ver=False):
         if (tile.taken_by is not None and tile.taken_by.color != self.color) or skip_tile_ver:
-            if (self.x_piece - 1 == tile.x_tile or self.x_piece + 1 == tile.x_tile) \
-                    and (self.y_piece - 1 == tile.y_tile or self.y_piece + 1 == tile.y_tile):
+            if (self.x_piece - 1 == tile.x_tile or self.x_piece + 1 == tile.x_tile) and \
+                    (self.y_piece - 1 == tile.y_tile or self.y_piece + 1 == tile.y_tile):
                 self.first_move = False
                 return True
 
@@ -283,9 +323,9 @@ class Pawn(Piece):
 
 
 class Rook(Piece):
-    def __init__(self, groups, board, size, coord_pos, rook_pos, color):
+    def __init__(self, groups, board, size, coord_pos, rook_pos, color, im_name='rook.png'):
         self.first_move = True
-        Piece.__init__(self, groups, board, size, coord_pos, rook_pos, color, 'rook.png')
+        Piece.__init__(self, groups, board, size, coord_pos, rook_pos, color, im_name)
 
     def can_move(self, tile, skip_tile_ver=False):
         if tile.taken_by is None or skip_tile_ver:
@@ -304,8 +344,8 @@ class Rook(Piece):
 
 
 class Knight(Piece):
-    def __init__(self, groups, board, size, coord_pos, knight_pos, color):
-        Piece.__init__(self, groups, board, size, coord_pos, knight_pos, color, 'knight.png')
+    def __init__(self, groups, board, size, coord_pos, knight_pos, color, im_name='knight.png'):
+        Piece.__init__(self, groups, board, size, coord_pos, knight_pos, color, im_name)
 
     def can_move(self, tile, skip_tile_ver=False):
         if tile.taken_by is None or skip_tile_ver:
@@ -325,8 +365,8 @@ class Knight(Piece):
 
 
 class Bishop(Piece):
-    def __init__(self, groups, board, size, coord_pos, bishop_pos, color):
-        Piece.__init__(self, groups, board, size, coord_pos, bishop_pos, color, 'bishop.png')
+    def __init__(self, groups, board, size, coord_pos, bishop_pos, color, im_name='bishop.png'):
+        Piece.__init__(self, groups, board, size, coord_pos, bishop_pos, color, im_name)
 
     def can_move(self, tile, skip_tile_ver=False):
         if tile.taken_by is None or skip_tile_ver:
@@ -346,8 +386,8 @@ class Bishop(Piece):
 
 
 class Queen(Piece):
-    def __init__(self, groups, board, size, coord_pos, queen_pos, color):
-        Piece.__init__(self, groups, board, size, coord_pos, queen_pos, color, 'queen.png')
+    def __init__(self, groups, board, size, coord_pos, queen_pos, color, im_name='queen.png'):
+        Piece.__init__(self, groups, board, size, coord_pos, queen_pos, color, im_name)
 
     def can_move(self, tile, skip_tile_ver=False):
         if tile.taken_by is None or skip_tile_ver:
@@ -356,6 +396,7 @@ class Queen(Piece):
 
             if x_dif == y_dif and not self.board.check_pieces_on_diagonal_between(self, tile):
                 return True
+
             elif (self.x_piece == tile.x_tile and not self.board.check_pieces_on_line_between(self, tile)) or \
                     (self.y_piece == tile.y_tile and not self.board.check_pieces_on_line_between(self, tile)):
                 return True
@@ -368,9 +409,9 @@ class Queen(Piece):
 
 
 class King(Piece):
-    def __init__(self, groups, board, size, coord_pos, king_pos, color):
+    def __init__(self, groups, board, size, coord_pos, king_pos, color, im_name='king.png'):
         self.first_move = True
-        Piece.__init__(self, groups, board, size, coord_pos, king_pos, color, 'king.png')
+        Piece.__init__(self, groups, board, size, coord_pos, king_pos, color, im_name)
 
     def can_move(self, tile, skip_tile_ver=False):
         if tile.taken_by is None or skip_tile_ver:
@@ -380,9 +421,11 @@ class King(Piece):
             if (x_dif == 1 and y_dif == 0) or (x_dif == 0 and y_dif == 1) or (x_dif == 1 and y_dif == 1):
                 self.first_move = False
                 return True
+
             elif x_dif == 2 and not self.board.check_pieces_on_line_between(self, tile) and self.first_move:
                 # This verification (castling check) works only for default board size
                 # Places with +-1 and +-2 breaking it (need a formula for future)
+
                 rook_tile = self.board.get_tile_by_pos(tile.x_tile + 1, tile.y_tile)
                 if type(rook_tile.taken_by) == Rook:
                     if rook_tile.taken_by.first_move and \
@@ -391,6 +434,7 @@ class King(Piece):
                         rook_tile.taken_by.move_on(self.board.get_tile_by_pos(tile.x_tile - 1, tile.y_tile))
                         self.first_move = False
                         return True
+
                 rook_tile = self.board.get_tile_by_pos(tile.x_tile - 2, tile.y_tile)
                 if type(rook_tile.taken_by) == Rook:
                     if rook_tile.taken_by.first_move and \
@@ -422,19 +466,9 @@ if __name__ == '__main__':
 
     PIECES_OBJ = [[Pawn],
                   [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]]
-    test_board = Board(win_size[0], 8, PIECES_OBJ, pieces_test, tiles_test, all_sprites_test, border_size=2)
-    test_board.set_pieces()
+    test_board = Board(win_size[0], 8, border_size=2)
+    test_board.set_pieces(PIECES_OBJ)
 
-    running = True
-    while running:
-        event = pygame.event.wait()
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            test_board.handle_click(event.pos)
-
-        all_sprites_test.draw(screen)
-
-        pygame.display.flip()
+    test_board.run_game()
 
     pygame.quit()
