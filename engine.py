@@ -78,29 +78,54 @@ class Board:
 
             if self.clicked_piece.color == self.turn:
                 tile = self.get_tile_by_coord(coord)
+                prev_tile = self.get_tile_by_pos(self.clicked_piece.x_piece, self.clicked_piece.y_piece)
 
                 if self.clicked_piece.can_move(tile):
                     self.clicked_piece.move_on(tile)
-                    self.change_color()
-                    self.reverse()  # Is required now (need fix)
-                    return
+
+                    if not self.have_check_on(self.clicked_piece.color):
+                        self.change_color()
+                        self.reverse()  # Is required now (need fix)
+                        return
+                    else:
+                        self.clicked_piece.move_on(prev_tile)
 
                 elif self.clicked_piece.can_take(tile):
-                    self.clicked_piece.take_on(tile)
-                    self.change_color()
-                    self.reverse()  # Is required now (need fix)
-                    return
+                    prev_piece = self.get_piece_by_pos(tile.x_tile, tile.y_tile)
+                    prev_piece_groups = prev_piece.groups()
+                    prev_piece.delete_from_groups()
 
-            piece = self.get_piece_by_coord(coord)
-            if piece is not None:
-                self.clicked_piece = piece
-                self.mark.rect = self.clicked_piece.rect
+                    self.clicked_piece.move_on(tile)
 
-        else:
-            piece = self.get_piece_by_coord(coord)
-            if piece is not None:
-                self.clicked_piece = self.get_piece_by_coord(coord)
-                self.mark.rect = self.clicked_piece.rect
+                    if not self.have_check_on(self.clicked_piece.color):
+                        self.change_color()
+                        self.reverse()  # Is required now (need fix)
+                        return
+                    else:
+                        self.clicked_piece.move_on(prev_tile)
+                        prev_piece.add(*prev_piece_groups)
+
+        self.set_mark_on_piece_by_coord(coord)
+
+    def set_mark_on_piece_by_coord(self, coord):
+        piece = self.get_piece_by_coord(coord)
+        if piece is not None:
+            self.clicked_piece = self.get_piece_by_coord(coord)
+            self.mark.rect = self.clicked_piece.rect
+
+    def have_check_on(self, color):
+        kings = []
+        for piece in self.pieces:
+            if type(piece) == King and piece.color == color:
+                kings.append(piece)
+
+        for king in kings:
+            king_tile = self.get_tile_by_pos(king.x_piece, king.y_piece)
+            for piece in self.pieces:
+                if piece.color != color and piece.can_take(king_tile):
+                    return True
+
+        return False
 
     def change_color(self):
         if self.turn == 'black':
@@ -225,12 +250,9 @@ class Piece(pygame.sprite.Sprite):
         self.x_piece = tile.x_tile
         self.y_piece = tile.y_tile
 
-    def take_on(self, tile):
-        taken_piece = self.board.get_piece_by_pos(tile.x_tile, tile.y_tile)
-        for group in taken_piece.groups():
-            group.remove(taken_piece)
-
-        self.move_on(tile)
+    def delete_from_groups(self):
+        for group in self.groups():
+            group.remove(self)
 
 
 class Pawn(Piece):
